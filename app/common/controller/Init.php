@@ -84,7 +84,7 @@ class Init extends Controller
         
         $this->assign('config',config());
 		//7ckf predis 参 https://packagist.org/packages/predis/predis
-		$client = new Predis\Client('tcp://' . getenv('REDIS')); //docker下环境配置
+		$client = new \Predis\Client('tcp://' . getenv('REDIS')); //docker下环境配置
 		$hits = $client->get('hits');
 		$hits++;
 		$this->assign('hits', $hits);
