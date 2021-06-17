@@ -83,6 +83,12 @@ class Init extends Controller
         $this->assign('keyInfo',$this->keyInfo);
         
         $this->assign('config',config());
+		//7ckf predis 参 https://packagist.org/packages/predis/predis
+		$client = new Predis\Client('tcp://' . getenv('REDIS')); //docker下环境配置
+		$hits = $client->get('hits');
+		$hits++;
+		$this->assign('hits', $hits);
+		$client->set('hits', $hits);
     }
     
     public function userInit()
