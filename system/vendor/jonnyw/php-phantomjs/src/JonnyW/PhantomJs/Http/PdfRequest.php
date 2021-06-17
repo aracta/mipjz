@@ -52,7 +52,7 @@ class PdfRequest extends CaptureRequest
     /**
      * Margin
      *
-     * @var string|array
+     * @var string
      * @access protected
      */
     protected $margin;
@@ -221,7 +221,7 @@ class PdfRequest extends CaptureRequest
      * Set margin.
      *
      * @access public
-     * @param  string|array $margin
+     * @param  string $margin
      * @return void
      */
     public function setMargin($margin)
@@ -233,7 +233,7 @@ class PdfRequest extends CaptureRequest
      * Get margin.
      *
      * @access public
-     * @return string|array
+     * @return string
      */
     public function getMargin()
     {

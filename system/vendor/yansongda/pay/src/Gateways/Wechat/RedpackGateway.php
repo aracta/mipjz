@@ -3,8 +3,11 @@
 namespace Yansongda\Pay\Gateways\Wechat;
 
 use Symfony\Component\HttpFoundation\Request;
+use Yansongda\Pay\Events;
+use Yansongda\Pay\Exceptions\GatewayException;
+use Yansongda\Pay\Exceptions\InvalidArgumentException;
+use Yansongda\Pay\Exceptions\InvalidSignException;
 use Yansongda\Pay\Gateways\Wechat;
-use Yansongda\Pay\Log;
 use Yansongda\Supports\Collection;
 
 class RedpackGateway extends Gateway
@@ -15,37 +18,57 @@ class RedpackGateway extends Gateway
      * @author yansongda <me@yansongda.cn>
      *
      * @param string $endpoint
-     * @param array  $payload
      *
-     * @return Collection
+     * @throws GatewayException
+     * @throws InvalidArgumentException
+     * @throws InvalidSignException
      */
     public function pay($endpoint, array $payload): Collection
     {
         $payload['wxappid'] = $payload['appid'];
-        php_sapi_name() === 'cli' ?: $payload['client_ip'] = Request::createFromGlobals()->server->get('SERVER_ADDR');
 
-        $this->mode !== Wechat::MODE_SERVICE ?: $payload['msgappid'] = $payload['appid'];
+        if ('cli' !== php_sapi_name()) {
+            $payload['client_ip'] = Request::createFromGlobals()->server->get('SERVER_ADDR');
+        }
 
-        unset($payload['appid'], $payload['trade_type'], $payload['notify_url'], $payload['spbill_create_ip']);
+        if (Wechat::MODE_SERVICE === $this->mode) {
+            $payload['msgappid'] = $payload['appid'];
+        }
 
-        $payload['sign'] = Support::generateSign($payload, $this->config->get('key'));
+        unset($payload['appid'], $payload['trade_type'],
+              $payload['notify_url'], $payload['spbill_create_ip']);
 
-        Log::debug('Paying A Redpack Order:', [$endpoint, $payload]);
+        $payload['sign'] = Support::generateSign($payload);
+
+        Events::dispatch(new Events\PayStarted('Wechat', 'Redpack', $endpoint, $payload));
 
         return Support::requestApi(
             'mmpaymkttransfers/sendredpack',
             $payload,
-            $this->config->get('key'),
-            ['cert' => $this->config->get('cert_client'), 'ssl_key' => $this->config->get('cert_key')]
+            true
         );
+    }
+
+    /**
+     * Find.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @param $billno
+     */
+    public function find($billno): array
+    {
+        return [
+            'endpoint' => 'mmpaymkttransfers/gethbinfo',
+            'order' => ['mch_billno' => $billno, 'bill_type' => 'MCHT'],
+            'cert' => true,
+        ];
     }
 
     /**
      * Get trade type config.
      *
      * @author yansongda <me@yansongda.cn>
-     *
-     * @return string
      */
     protected function getTradeType(): string
     {

@@ -443,10 +443,6 @@ class Loader
         if (isset(self::$instance[$uid])) {
             return self::$instance[$uid];
         }
-		
-		if (strpos($name, '.') !== false) {
-			$name = str_replace('.', '\\', $name);
-		}
 
         list($module, $class) = self::getModuleAndClass($name, $layer, $appendSuffix);
 

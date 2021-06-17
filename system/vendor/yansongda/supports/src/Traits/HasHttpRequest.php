@@ -5,24 +5,41 @@ namespace Yansongda\Supports\Traits;
 use GuzzleHttp\Client;
 use Psr\Http\Message\ResponseInterface;
 
+/**
+ * Trait HasHttpRequest.
+ *
+ * @property string $baseUri
+ * @property float  $timeout
+ * @property float  $connectTimeout
+ */
 trait HasHttpRequest
 {
+    /**
+     * Http client.
+     *
+     * @var Client|null
+     */
+    protected $httpClient = null;
+
+    /**
+     * Http client options.
+     *
+     * @var array
+     */
+    protected $httpOptions = [];
+
     /**
      * Send a GET request.
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param string $endpoint
-     * @param array  $query
-     * @param array  $headers
-     *
      * @return array|string
      */
-    protected function get($endpoint, $query = [], $headers = [])
+    public function get(string $endpoint, array $query = [], array $headers = [])
     {
         return $this->request('get', $endpoint, [
             'headers' => $headers,
-            'query'   => $query,
+            'query' => $query,
         ]);
     }
 
@@ -31,13 +48,11 @@ trait HasHttpRequest
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param string       $endpoint
      * @param string|array $data
-     * @param array        $options
      *
      * @return array|string
      */
-    protected function post($endpoint, $data, $options = [])
+    public function post(string $endpoint, $data, array $options = [])
     {
         if (!is_array($data)) {
             $options['body'] = $data;
@@ -53,45 +68,142 @@ trait HasHttpRequest
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param string $method
-     * @param string $endpoint
-     * @param array  $options
-     *
      * @return array|string
      */
-    protected function request($method, $endpoint, $options = [])
+    public function request(string $method, string $endpoint, array $options = [])
     {
-        return $this->unwrapResponse($this->getHttpClient($this->getBaseOptions())->{$method}($endpoint, $options));
+        return $this->unwrapResponse($this->getHttpClient()->{$method}($endpoint, $options));
     }
 
     /**
-     * Get base options.
+     * Set http client.
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @return array
+     * @return $this
      */
-    protected function getBaseOptions()
+    public function setHttpClient(Client $client): self
     {
-        $options = [
-            'base_uri'         => property_exists($this, 'baseUri') ? $this->baseUri : '',
-            'timeout'          => property_exists($this, 'timeout') ? $this->timeout : 5.0,
-            'connect_timeout'  => property_exists($this, 'connect_timeout') ? $this->connect_timeout : 5.0,
-        ];
+        $this->httpClient = $client;
 
-        return $options;
+        return $this;
     }
 
     /**
      * Return http client.
-     *
-     * @param array $options
-     *
-     * @return \GuzzleHttp\Client
      */
-    protected function getHttpClient(array $options = [])
+    public function getHttpClient(): Client
     {
-        return new Client($options);
+        if (is_null($this->httpClient)) {
+            $this->httpClient = $this->getDefaultHttpClient();
+        }
+
+        return $this->httpClient;
+    }
+
+    /**
+     * Get default http client.
+     *
+     * @author yansongda <me@yansongda.cn>
+     */
+    public function getDefaultHttpClient(): Client
+    {
+        return new Client($this->getOptions());
+    }
+
+    /**
+     * setBaseUri.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @return $this
+     */
+    public function setBaseUri(string $url): self
+    {
+        if (property_exists($this, 'baseUri')) {
+            $parsedUrl = parse_url($url);
+
+            $this->baseUri = ($parsedUrl['scheme'] ?? 'http').'://'.
+                $parsedUrl['host'].(isset($parsedUrl['port']) ? (':'.$parsedUrl['port']) : '');
+        }
+
+        return $this;
+    }
+
+    /**
+     * getBaseUri.
+     *
+     * @author yansongda <me@yansongda.cn>
+     */
+    public function getBaseUri(): string
+    {
+        return property_exists($this, 'baseUri') ? $this->baseUri : '';
+    }
+
+    public function getTimeout(): float
+    {
+        return property_exists($this, 'timeout') ? $this->timeout : 5.0;
+    }
+
+    public function setTimeout(float $timeout): self
+    {
+        if (property_exists($this, 'timeout')) {
+            $this->timeout = $timeout;
+        }
+
+        return $this;
+    }
+
+    public function getConnectTimeout(): float
+    {
+        return property_exists($this, 'connectTimeout') ? $this->connectTimeout : 3.0;
+    }
+
+    public function setConnectTimeout(float $connectTimeout): self
+    {
+        if (property_exists($this, 'connectTimeout')) {
+            $this->connectTimeout = $connectTimeout;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Get default options.
+     *
+     * @author yansongda <me@yansongda.cn>
+     */
+    public function getOptions(): array
+    {
+        return array_merge([
+            'base_uri' => $this->getBaseUri(),
+            'timeout' => $this->getTimeout(),
+            'connect_timeout' => $this->getConnectTimeout(),
+        ], $this->getHttpOptions());
+    }
+
+    /**
+     * setOptions.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @return $this
+     */
+    public function setOptions(array $options): self
+    {
+        return $this->setHttpOptions($options);
+    }
+
+    public function getHttpOptions(): array
+    {
+        return $this->httpOptions;
+    }
+
+    public function setHttpOptions(array $httpOptions): self
+    {
+        $this->httpOptions = $httpOptions;
+
+        return $this;
     }
 
     /**
@@ -99,11 +211,9 @@ trait HasHttpRequest
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param ResponseInterface $response
-     *
      * @return array|string
      */
-    protected function unwrapResponse(ResponseInterface $response)
+    public function unwrapResponse(ResponseInterface $response)
     {
         $contentType = $response->getHeaderLine('Content-Type');
         $contents = $response->getBody()->getContents();

@@ -2,54 +2,58 @@
 
 namespace Yansongda\Pay\Gateways\Alipay;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Yansongda\Pay\Contracts\GatewayInterface;
-use Yansongda\Pay\Log;
-use Yansongda\Supports\Config;
+use Yansongda\Pay\Events;
+use Yansongda\Pay\Exceptions\InvalidArgumentException;
+use Yansongda\Pay\Exceptions\InvalidConfigException;
+use Yansongda\Pay\Gateways\Alipay;
 
-class WebGateway implements GatewayInterface
+class WebGateway extends Gateway
 {
-    /**
-     * Config.
-     *
-     * @var Config
-     */
-    protected $config;
-
-    /**
-     * Bootstrap.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @param Config $config
-     */
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-    }
-
     /**
      * Pay an order.
      *
      * @author yansongda <me@yansongda.cn>
      *
      * @param string $endpoint
-     * @param array  $payload
      *
-     * @return Response
+     * @throws InvalidConfigException
+     * @throws InvalidArgumentException
      */
     public function pay($endpoint, array $payload): Response
     {
+        $biz_array = json_decode($payload['biz_content'], true);
+        $biz_array['product_code'] = $this->getProductCode();
+
+        $method = $biz_array['http_method'] ?? 'POST';
+
+        unset($biz_array['http_method']);
+        if ((Alipay::MODE_SERVICE === $this->mode) && (!empty(Support::getInstance()->pid))) {
+            $biz_array['extend_params'] = is_array($biz_array['extend_params']) ? array_merge(['sys_service_provider_id' => Support::getInstance()->pid], $biz_array['extend_params']) : ['sys_service_provider_id' => Support::getInstance()->pid];
+        }
         $payload['method'] = $this->getMethod();
-        $payload['biz_content'] = json_encode(array_merge(
-            json_decode($payload['biz_content'], true),
-            ['product_code' => $this->getProductCode()]
-        ));
-        $payload['sign'] = Support::generateSign($payload, $this->config->get('private_key'));
+        $payload['biz_content'] = json_encode($biz_array);
+        $payload['sign'] = Support::generateSign($payload);
 
-        Log::debug('Paying A Web/Wap Order:', [$endpoint, $payload]);
+        Events::dispatch(new Events\PayStarted('Alipay', 'Web/Wap', $endpoint, $payload));
 
-        return $this->buildPayHtml($endpoint, $payload);
+        return $this->buildPayHtml($endpoint, $payload, $method);
+    }
+
+    /**
+     * Find.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @param $order
+     */
+    public function find($order): array
+    {
+        return [
+            'method' => 'alipay.trade.query',
+            'biz_content' => json_encode(is_array($order) ? $order : ['out_trade_no' => $order]),
+        ];
     }
 
     /**
@@ -59,28 +63,29 @@ class WebGateway implements GatewayInterface
      *
      * @param string $endpoint
      * @param array  $payload
-     *
-     * @return Response
+     * @param string $method
      */
-    protected function buildPayHtml($endpoint, $payload): Response
+    protected function buildPayHtml($endpoint, $payload, $method = 'POST'): Response
     {
-        $sHtml = "<form id='alipaysubmit' name='alipaysubmit' action='".$endpoint."' method='POST'>";
+        if ('GET' === strtoupper($method)) {
+            return new RedirectResponse($endpoint.'&'.http_build_query($payload));
+        }
+
+        $sHtml = "<form id='alipay_submit' name='alipay_submit' action='".$endpoint."' method='".$method."'>";
         foreach ($payload as $key => $val) {
             $val = str_replace("'", '&apos;', $val);
             $sHtml .= "<input type='hidden' name='".$key."' value='".$val."'/>";
         }
-        $sHtml .= "<input type='submit' value='ok' style='display:none;''></form>";
-        $sHtml .= "<script>document.forms['alipaysubmit'].submit();</script>";
+        $sHtml .= "<input type='submit' value='ok' style='display:none;'></form>";
+        $sHtml .= "<script>document.forms['alipay_submit'].submit();</script>";
 
-        return Response::create($sHtml);
+        return new Response($sHtml);
     }
 
     /**
      * Get method config.
      *
      * @author yansongda <me@yansongda.cn>
-     *
-     * @return string
      */
     protected function getMethod(): string
     {
@@ -91,8 +96,6 @@ class WebGateway implements GatewayInterface
      * Get productCode config.
      *
      * @author yansongda <me@yansongda.cn>
-     *
-     * @return string
      */
     protected function getProductCode(): string
     {

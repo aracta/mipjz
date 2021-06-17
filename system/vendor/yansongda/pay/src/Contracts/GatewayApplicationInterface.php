@@ -2,6 +2,9 @@
 
 namespace Yansongda\Pay\Contracts;
 
+use Symfony\Component\HttpFoundation\Response;
+use Yansongda\Supports\Collection;
+
 interface GatewayApplicationInterface
 {
     /**
@@ -12,7 +15,7 @@ interface GatewayApplicationInterface
      * @param string $gateway
      * @param array  $params
      *
-     * @return Yansongda\Supports\Collection|Symfony\Component\HttpFoundation\Response
+     * @return Collection|Response
      */
     public function pay($gateway, $params);
 
@@ -22,22 +25,19 @@ interface GatewayApplicationInterface
      * @author yansongda <me@yansongda.cn>
      *
      * @param string|array $order
-     * @param bool         $refund
      *
-     * @return Yansongda\Supports\Collection
+     * @return Collection
      */
-    public function find($order, $refund);
+    public function find($order, string $type);
 
     /**
      * Refund an order.
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param array $order
-     *
-     * @return Yansongda\Supports\Collection
+     * @return Collection
      */
-    public function refund($order);
+    public function refund(array $order);
 
     /**
      * Cancel an order.
@@ -46,7 +46,7 @@ interface GatewayApplicationInterface
      *
      * @param string|array $order
      *
-     * @return Yansongda\Supports\Collection
+     * @return Collection
      */
     public function cancel($order);
 
@@ -57,7 +57,7 @@ interface GatewayApplicationInterface
      *
      * @param string|array $order
      *
-     * @return Yansongda\Supports\Collection
+     * @return Collection
      */
     public function close($order);
 
@@ -66,19 +66,18 @@ interface GatewayApplicationInterface
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param string|null $content
-     * @param bool        $refund
+     * @param string|array|null $content
      *
-     * @return Yansongda\Supports\Collection
+     * @return Collection
      */
-    public function verify($content, $refund);
+    public function verify($content, bool $refund);
 
     /**
      * Echo success to server.
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @return Symfony\Component\HttpFoundation\Response
+     * @return Response
      */
     public function success();
 }

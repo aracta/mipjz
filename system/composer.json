@@ -25,7 +25,8 @@
         "aferrandini/phpqrcode": "1.0.1",
         "jonnyw/php-phantomjs": "4.*",
         "hashids/hashids": "^3.0",
-        "yansongda/pay": "^2.4"
+        "yansongda/pay": "^2.4",
+        "predis/predis": "^1.1"
     },
     "extra": {
         "think-path": "thinkphp"
@@ -40,7 +41,7 @@
     "repositories": {
         "packagist": {
             "type": "composer",
-            "url": "https://packagist.phpcomposer.com"
+            "url": "https://packagist.org"
         }
     }
 }

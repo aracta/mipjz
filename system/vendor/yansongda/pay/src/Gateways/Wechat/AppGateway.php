@@ -2,10 +2,14 @@
 
 namespace Yansongda\Pay\Gateways\Wechat;
 
+use Exception;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Yansongda\Pay\Events;
+use Yansongda\Pay\Exceptions\GatewayException;
+use Yansongda\Pay\Exceptions\InvalidArgumentException;
+use Yansongda\Pay\Exceptions\InvalidSignException;
 use Yansongda\Pay\Gateways\Wechat;
-use Yansongda\Pay\Log;
 use Yansongda\Supports\Str;
 
 class AppGateway extends Gateway
@@ -16,38 +20,40 @@ class AppGateway extends Gateway
      * @author yansongda <me@yansongda.cn>
      *
      * @param string $endpoint
-     * @param array  $payload
      *
-     * @return Response
+     * @throws GatewayException
+     * @throws InvalidArgumentException
+     * @throws InvalidSignException
+     * @throws Exception
      */
     public function pay($endpoint, array $payload): Response
     {
-        $payload['appid'] = $this->config->get('appid');
+        $payload['appid'] = Support::getInstance()->appid;
         $payload['trade_type'] = $this->getTradeType();
 
-        $this->mode !== Wechat::MODE_SERVICE ?: $payload['sub_appid'] = $this->config->get('sub_appid');
+        if (Wechat::MODE_SERVICE === $this->mode) {
+            $payload['sub_appid'] = Support::getInstance()->sub_appid;
+        }
 
-        $payRequest = [
-            'appid'     => $this->mode === Wechat::MODE_SERVICE ? $payload['sub_appid'] : $payload['appid'],
-            'partnerid' => $this->mode === Wechat::MODE_SERVICE ? $payload['sub_mch_id'] : $payload['mch_id'],
-            'prepayid'  => $this->preOrder('pay/unifiedorder', $payload)->prepay_id,
+        $pay_request = [
+            'appid' => Wechat::MODE_SERVICE === $this->mode ? $payload['sub_appid'] : $payload['appid'],
+            'partnerid' => Wechat::MODE_SERVICE === $this->mode ? $payload['sub_mch_id'] : $payload['mch_id'],
+            'prepayid' => $this->preOrder($payload)->get('prepay_id'),
             'timestamp' => strval(time()),
-            'noncestr'  => Str::random(),
-            'package'   => 'Sign=WXPay',
+            'noncestr' => Str::random(),
+            'package' => 'Sign=WXPay',
         ];
-        $payRequest['sign'] = Support::generateSign($payRequest, $this->config->get('key'));
+        $pay_request['sign'] = Support::generateSign($pay_request);
 
-        Log::debug('Paying An App Order:', [$endpoint, $payRequest]);
+        Events::dispatch(new Events\PayStarted('Wechat', 'App', $endpoint, $pay_request));
 
-        return JsonResponse::create($payRequest);
+        return new JsonResponse($pay_request);
     }
 
     /**
      * Get trade type config.
      *
      * @author yansongda <me@yansongda.cn>
-     *
-     * @return string
      */
     protected function getTradeType(): string
     {

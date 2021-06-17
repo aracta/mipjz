@@ -22,7 +22,7 @@ class ServiceContainer extends ContainerBuilder
     /**
      * Service container instance
      *
-     * @var static
+     * @var \JonnyW\PhantomJs\DependencyInjection\ServiceContainer
      * @access private
      */
     private static $instance;
@@ -31,21 +31,32 @@ class ServiceContainer extends ContainerBuilder
      * Get singleton instance
      *
      * @access public
-     * @return static
+     * @return \JonnyW\PhantomJs\Client
      */
     public static function getInstance()
     {
-        if (null === self::$instance) {
-            self::$instance = new static();
+        if (!self::$instance instanceof ServiceContainer) {
 
-            $loader = new YamlFileLoader(self::$instance, new FileLocator(__DIR__.'/../Resources/config'));
-            $loader->load('config.yml');
-            $loader->load('services.yml');
-
-            self::$instance->setParameter('phantomjs.cache_dir', sys_get_temp_dir());
-            self::$instance->setParameter('phantomjs.resource_dir', __DIR__.'/../Resources');
+            self::$instance = new ServiceContainer();
+            self::$instance->load();
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Load service container.
+     *
+     * @access public
+     * @return void
+     */
+    public function load()
+    {
+        $loader = new YamlFileLoader($this, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader->load('config.yml');
+        $loader->load('services.yml');
+
+        $this->setParameter('phantomjs.cache_dir', sys_get_temp_dir());
+        $this->setParameter('phantomjs.resource_dir', __DIR__.'/../Resources');
     }
 }

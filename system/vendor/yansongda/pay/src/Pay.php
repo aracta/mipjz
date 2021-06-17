@@ -2,17 +2,20 @@
 
 namespace Yansongda\Pay;
 
-use Monolog\Formatter\LineFormatter;
-use Monolog\Handler\StreamHandler;
-use Monolog\Logger;
+use Exception;
 use Yansongda\Pay\Contracts\GatewayApplicationInterface;
 use Yansongda\Pay\Exceptions\InvalidGatewayException;
+use Yansongda\Pay\Gateways\Alipay;
+use Yansongda\Pay\Gateways\Wechat;
+use Yansongda\Pay\Listeners\KernelLogSubscriber;
 use Yansongda\Supports\Config;
+use Yansongda\Supports\Log;
+use Yansongda\Supports\Logger;
 use Yansongda\Supports\Str;
 
 /**
- * @method static \Yansongda\Pay\Gateways\Alipay alipay(array $config) 支付宝
- * @method static \Yansongda\Pay\Gateways\Wechat wechat(array $config) 微信
+ * @method static Alipay alipay(array $config) 支付宝
+ * @method static Wechat wechat(array $config) 微信
  */
 class Pay
 {
@@ -28,11 +31,32 @@ class Pay
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param array $config
+     * @throws Exception
      */
     public function __construct(array $config)
     {
         $this->config = new Config($config);
+
+        $this->registerLogService();
+        $this->registerEventService();
+    }
+
+    /**
+     * Magic static call.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @param string $method
+     * @param array  $params
+     *
+     * @throws InvalidGatewayException
+     * @throws Exception
+     */
+    public static function __callStatic($method, $params): GatewayApplicationInterface
+    {
+        $app = new self(...$params);
+
+        return $app->create($method);
     }
 
     /**
@@ -42,12 +66,10 @@ class Pay
      *
      * @param string $method
      *
-     * @return GatewayApplicationInterface
+     * @throws InvalidGatewayException
      */
-    protected function create($method)
+    protected function create($method): GatewayApplicationInterface
     {
-        !$this->config->has('log.file') ?: $this->registeLog();
-
         $gateway = __NAMESPACE__.'\\Gateways\\'.Str::studly($method);
 
         if (class_exists($gateway)) {
@@ -64,9 +86,9 @@ class Pay
      *
      * @param string $gateway
      *
-     * @return GatewayApplicationInterface
+     * @throws InvalidGatewayException
      */
-    protected function make($gateway)
+    protected function make($gateway): GatewayApplicationInterface
     {
         $app = new $gateway($this->config);
 
@@ -74,42 +96,36 @@ class Pay
             return $app;
         }
 
-        throw new InvalidGatewayException("Gateway [$gateway] Must Be An Instance Of GatewayApplicationInterface");
+        throw new InvalidGatewayException("Gateway [{$gateway}] Must Be An Instance Of GatewayApplicationInterface");
     }
 
     /**
-     * Registe log service.
+     * Register log service.
      *
      * @author yansongda <me@yansongda.cn>
+     *
+     * @throws Exception
      */
-    protected function registeLog()
+    protected function registerLogService()
     {
-        $handler = new StreamHandler(
-            $this->config->get('log.file'),
-            $this->config->get('log.level', Logger::WARNING)
-        );
-        $handler->setFormatter(new LineFormatter("%datetime% > %level_name% > %message% %context% %extra%\n\n"));
+        $config = $this->config->get('log');
+        $config['identify'] = 'yansongda.pay';
 
-        $logger = new Logger('yansongda.pay');
-        $logger->pushHandler($handler);
+        $logger = new Logger();
+        $logger->setConfig($config);
 
-        Log::setLogger($logger);
+        Log::setInstance($logger);
     }
 
     /**
-     * Magic static call.
+     * Register event service.
      *
      * @author yansongda <me@yansongda.cn>
-     *
-     * @param string $method
-     * @param array  $params
-     *
-     * @return GatewayApplicationInterface
      */
-    public static function __callStatic($method, $params)
+    protected function registerEventService()
     {
-        $app = new self(...$params);
+        Events::setDispatcher(Events::createDispatcher());
 
-        return $app->create($method);
+        Events::addSubscriber(new KernelLogSubscriber());
     }
 }

@@ -2,11 +2,15 @@
 
 namespace Yansongda\Pay\Gateways;
 
+use Exception;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yansongda\Pay\Contracts\GatewayApplicationInterface;
 use Yansongda\Pay\Contracts\GatewayInterface;
+use Yansongda\Pay\Events;
 use Yansongda\Pay\Exceptions\GatewayException;
+use Yansongda\Pay\Exceptions\InvalidArgumentException;
 use Yansongda\Pay\Exceptions\InvalidGatewayException;
 use Yansongda\Pay\Exceptions\InvalidSignException;
 use Yansongda\Pay\Gateways\Wechat\Support;
@@ -16,43 +20,53 @@ use Yansongda\Supports\Config;
 use Yansongda\Supports\Str;
 
 /**
- * @method \Yansongda\Pay\Gateways\Wechat\AppGateway app(array $config) APP 支付
- * @method \Yansongda\Pay\Gateways\Wechat\GroupRedpackGateway groupRedpack(array $config) 分裂红包
- * @method \Yansongda\Pay\Gateways\Wechat\MiniappGateway miniapp(array $config) 小程序支付
- * @method \Yansongda\Pay\Gateways\Wechat\MpGateway mp(array $config) 公众号支付
- * @method \Yansongda\Pay\Gateways\Wechat\PosGateway pos(array $config) 刷卡支付
- * @method \Yansongda\Pay\Gateways\Wechat\RedpackGateway redpack(array $config) 普通红包
- * @method \Yansongda\Pay\Gateways\Wechat\ScanGateway scan(array $config) 扫码支付
- * @method \Yansongda\Pay\Gateways\Wechat\TransferGateway transfer(array $config) 企业付款
- * @method \Yansongda\Pay\Gateways\Wechat\WapGateway wap(array $config) H5 支付
+ * @method Response         app(array $config)          APP 支付
+ * @method Collection       groupRedpack(array $config) 分裂红包
+ * @method Collection       miniapp(array $config)      小程序支付
+ * @method Collection       mp(array $config)           公众号支付
+ * @method Collection       pos(array $config)          刷卡支付
+ * @method Collection       redpack(array $config)      普通红包
+ * @method Collection       scan(array $config)         扫码支付
+ * @method Collection       transfer(array $config)     企业付款
+ * @method RedirectResponse wap(array $config)          H5 支付
  */
 class Wechat implements GatewayApplicationInterface
 {
-    // 普通模式
+    /**
+     * 普通模式.
+     */
     const MODE_NORMAL = 'normal';
 
-    // 沙箱模式
+    /**
+     * 沙箱模式.
+     */
     const MODE_DEV = 'dev';
 
-    // 香港钱包
+    /**
+     * 香港钱包 API.
+     */
     const MODE_HK = 'hk';
 
-    // 服务商
+    /**
+     * 境外 API.
+     */
+    const MODE_US = 'us';
+
+    /**
+     * 服务商模式.
+     */
     const MODE_SERVICE = 'service';
 
     /**
-     * Config.
-     *
-     * @var Config
+     * Const url.
      */
-    protected $config;
-
-    /**
-     * Mode.
-     *
-     * @var string
-     */
-    protected $mode;
+    const URL = [
+        self::MODE_NORMAL => 'https://api.mch.weixin.qq.com/',
+        self::MODE_DEV => 'https://api.mch.weixin.qq.com/sandboxnew/',
+        self::MODE_HK => 'https://apihk.mch.weixin.qq.com/',
+        self::MODE_SERVICE => 'https://api.mch.weixin.qq.com/',
+        self::MODE_US => 'https://apius.mch.weixin.qq.com/',
+    ];
 
     /**
      * Wechat payload.
@@ -73,29 +87,44 @@ class Wechat implements GatewayApplicationInterface
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param Config $config
+     * @throws Exception
      */
     public function __construct(Config $config)
     {
-        $this->config = $config;
-        $this->mode = $this->config->get('mode', self::MODE_NORMAL);
-        $this->gateway = Support::baseUri($this->mode);
+        $this->gateway = Support::create($config)->getBaseUri();
         $this->payload = [
-            'appid'            => $this->config->get('app_id', ''),
-            'mch_id'           => $this->config->get('mch_id', ''),
-            'nonce_str'        => Str::random(),
-            'notify_url'       => $this->config->get('notify_url', ''),
-            'sign'             => '',
-            'trade_type'       => '',
+            'appid' => $config->get('app_id', ''),
+            'mch_id' => $config->get('mch_id', ''),
+            'nonce_str' => Str::random(),
+            'notify_url' => $config->get('notify_url', ''),
+            'sign' => '',
+            'trade_type' => '',
             'spbill_create_ip' => Request::createFromGlobals()->getClientIp(),
         ];
 
-        if ($this->mode === static::MODE_SERVICE) {
+        if ($config->get('mode', self::MODE_NORMAL) === static::MODE_SERVICE) {
             $this->payload = array_merge($this->payload, [
-                'sub_mch_id' => $this->config->get('sub_mch_id'),
-                'sub_appid'  => $this->config->get('sub_app_id', ''),
+                'sub_mch_id' => $config->get('sub_mch_id'),
+                'sub_appid' => $config->get('sub_app_id', ''),
             ]);
         }
+    }
+
+    /**
+     * Magic pay.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @param string $method
+     * @param string $params
+     *
+     * @throws InvalidGatewayException
+     *
+     * @return Response|Collection
+     */
+    public function __call($method, $params)
+    {
+        return self::pay($method, ...$params);
     }
 
     /**
@@ -106,10 +135,14 @@ class Wechat implements GatewayApplicationInterface
      * @param string $gateway
      * @param array  $params
      *
+     * @throws InvalidGatewayException
+     *
      * @return Response|Collection
      */
     public function pay($gateway, $params = [])
     {
+        Events::dispatch(new Events\PayStarting('Wechat', $gateway, $params));
+
         $this->payload = array_merge($this->payload, $params);
 
         $gateway = get_class($this).'\\'.Str::studly($gateway).'Gateway';
@@ -127,24 +160,29 @@ class Wechat implements GatewayApplicationInterface
      * @author yansongda <me@yansongda.cn>
      *
      * @param string|null $content
-     * @param bool        $refund
      *
-     * @return Collection
+     * @throws InvalidSignException
+     * @throws InvalidArgumentException
      */
-    public function verify($content = null, $refund = false): Collection
+    public function verify($content = null, bool $refund = false): Collection
     {
         $content = $content ?? Request::createFromGlobals()->getContent();
-        $data = Support::fromXml(
-            $refund ? Support::decryptRefundContents($content, $this->config->get('key')) : $content
-        );
 
-        Log::debug('Receive Wechat Request:', $data);
+        Events::dispatch(new Events\RequestReceived('Wechat', '', [$content]));
 
-        if ($refund || Support::generateSign($data, $this->config->get('key')) === $data['sign']) {
+        $data = Support::fromXml($content);
+        if ($refund) {
+            $decrypt_data = Support::decryptRefundContents($data['req_info']);
+            $data = array_merge(Support::fromXml($decrypt_data), $data);
+        }
+
+        Log::debug('Resolved The Received Wechat Request Data', $data);
+
+        if ($refund || Support::generateSign($data) === $data['sign']) {
             return new Collection($data);
         }
 
-        Log::warning('Wechat Sign Verify FAILED', $data);
+        Events::dispatch(new Events\SignFailed('Wechat', '', $data));
 
         throw new InvalidSignException('Wechat Sign Verify FAILED', $data);
     }
@@ -155,20 +193,33 @@ class Wechat implements GatewayApplicationInterface
      * @author yansongda <me@yansongda.cn>
      *
      * @param string|array $order
-     * @param bool         $refund
      *
-     * @return Collection
+     * @throws GatewayException
+     * @throws InvalidSignException
+     * @throws InvalidArgumentException
      */
-    public function find($order, $refund = false): Collection
+    public function find($order, string $type = 'wap'): Collection
     {
-        $this->payload = Support::filterPayload($this->payload, $order, $this->config);
+        if ('wap' != $type) {
+            unset($this->payload['spbill_create_ip']);
+        }
 
-        Log::debug('Wechat Find An Order:', [$this->gateway, $this->payload]);
+        $gateway = get_class($this).'\\'.Str::studly($type).'Gateway';
+
+        if (!class_exists($gateway) || !is_callable([new $gateway(), 'find'])) {
+            throw new GatewayException("{$gateway} Done Not Exist Or Done Not Has FIND Method");
+        }
+
+        $config = call_user_func([new $gateway(), 'find'], $order);
+
+        $this->payload = Support::filterPayload($this->payload, $config['order']);
+
+        Events::dispatch(new Events\MethodCalled('Wechat', 'Find', $this->gateway, $this->payload));
 
         return Support::requestApi(
-            $refund ? 'pay/refundquery' : 'pay/orderquery',
+            $config['endpoint'],
             $this->payload,
-            $this->config->get('key')
+            $config['cert']
         );
     }
 
@@ -177,21 +228,20 @@ class Wechat implements GatewayApplicationInterface
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param array $order
-     *
-     * @return Collection
+     * @throws GatewayException
+     * @throws InvalidSignException
+     * @throws InvalidArgumentException
      */
-    public function refund($order): Collection
+    public function refund(array $order): Collection
     {
-        $this->payload = Support::filterPayload($this->payload, $order, $this->config, true);
+        $this->payload = Support::filterPayload($this->payload, $order, true);
 
-        Log::debug('Wechat Refund An Order:', [$this->gateway, $this->payload]);
+        Events::dispatch(new Events\MethodCalled('Wechat', 'Refund', $this->gateway, $this->payload));
 
         return Support::requestApi(
             'secapi/pay/refund',
             $this->payload,
-            $this->config->get('key'),
-            ['cert' => $this->config->get('cert_client'), 'ssl_key' => $this->config->get('cert_key')]
+            true
         );
     }
 
@@ -202,11 +252,23 @@ class Wechat implements GatewayApplicationInterface
      *
      * @param array $order
      *
-     * @return Collection
+     * @throws GatewayException
+     * @throws InvalidSignException
+     * @throws InvalidArgumentException
      */
     public function cancel($order): Collection
     {
-        throw new GatewayException('Wechat Do Not Have Cancel API! Plase use Close API!');
+        unset($this->payload['spbill_create_ip']);
+
+        $this->payload = Support::filterPayload($this->payload, $order);
+
+        Events::dispatch(new Events\MethodCalled('Wechat', 'Cancel', $this->gateway, $this->payload));
+
+        return Support::requestApi(
+            'secapi/pay/reverse',
+            $this->payload,
+            true
+        );
     }
 
     /**
@@ -216,17 +278,19 @@ class Wechat implements GatewayApplicationInterface
      *
      * @param string|array $order
      *
-     * @return Collection
+     * @throws GatewayException
+     * @throws InvalidSignException
+     * @throws InvalidArgumentException
      */
-    public function close($order)
+    public function close($order): Collection
     {
         unset($this->payload['spbill_create_ip']);
 
-        $this->payload = Support::filterPayload($this->payload, $order, $this->config);
+        $this->payload = Support::filterPayload($this->payload, $order);
 
-        Log::debug('Wechat Close An Order:', [$this->gateway, $this->payload]);
+        Events::dispatch(new Events\MethodCalled('Wechat', 'Close', $this->gateway, $this->payload));
 
-        return Support::requestApi('pay/closeorder', $this->payload, $this->config->get('key'));
+        return Support::requestApi('pay/closeorder', $this->payload);
     }
 
     /**
@@ -234,15 +298,45 @@ class Wechat implements GatewayApplicationInterface
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @return Response
+     * @throws InvalidArgumentException
      */
     public function success(): Response
     {
-        return Response::create(
+        Events::dispatch(new Events\MethodCalled('Wechat', 'Success', $this->gateway));
+
+        return new Response(
             Support::toXml(['return_code' => 'SUCCESS', 'return_msg' => 'OK']),
             200,
             ['Content-Type' => 'application/xml']
         );
+    }
+
+    /**
+     * Download the bill.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @throws GatewayException
+     * @throws InvalidArgumentException
+     */
+    public function download(array $params): string
+    {
+        unset($this->payload['spbill_create_ip']);
+
+        $this->payload = Support::filterPayload($this->payload, $params, true);
+
+        Events::dispatch(new Events\MethodCalled('Wechat', 'Download', $this->gateway, $this->payload));
+
+        $result = Support::getInstance()->post(
+            'pay/downloadbill',
+            Support::getInstance()->toXml($this->payload)
+        );
+
+        if (is_array($result)) {
+            throw new GatewayException('Get Wechat API Error: '.$result['return_msg'], $result);
+        }
+
+        return $result;
     }
 
     /**
@@ -252,31 +346,20 @@ class Wechat implements GatewayApplicationInterface
      *
      * @param string $gateway
      *
-     * @return Response
-     */
-    protected function makePay($gateway)
-    {
-        $app = new $gateway($this->config);
-
-        if ($app instanceof GatewayInterface) {
-            return $app->pay($this->gateway, $this->payload);
-        }
-
-        throw new InvalidGatewayException("Pay Gateway [{$gateway}] Must Be An Instance Of GatewayInterface");
-    }
-
-    /**
-     * Magic pay.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @param string $method
-     * @param string $params
+     * @throws InvalidGatewayException
      *
      * @return Response|Collection
      */
-    public function __call($method, $params)
+    protected function makePay($gateway)
     {
-        return self::pay($method, ...$params);
+        $app = new $gateway();
+
+        if ($app instanceof GatewayInterface) {
+            return $app->pay($this->gateway, array_filter($this->payload, function ($value) {
+                return '' !== $value && !is_null($value);
+            }));
+        }
+
+        throw new InvalidGatewayException("Pay Gateway [{$gateway}] Must Be An Instance Of GatewayInterface");
     }
 }

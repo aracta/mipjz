@@ -6,12 +6,14 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
+    'Attribute' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
     'Callback' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'CallbackBody' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'CallbackParam' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'CallbackParameterToReference' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'CallbackReturnReference' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'CallbackReturnValue' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
+    'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'DOMDocumentWrapper' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'DOMEvent' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'ICallbackNamed' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
@@ -88,6 +90,9 @@ return array(
     'JonnyW\\PhantomJs\\Tests\\Unit\\Validator\\EsprimaTest' => $vendorDir . '/jonnyw/php-phantomjs/src/JonnyW/PhantomJs/Tests/Unit/Validator/EsprimaTest.php',
     'JonnyW\\PhantomJs\\Validator\\EngineInterface' => $vendorDir . '/jonnyw/php-phantomjs/src/JonnyW/PhantomJs/Validator/EngineInterface.php',
     'JonnyW\\PhantomJs\\Validator\\Esprima' => $vendorDir . '/jonnyw/php-phantomjs/src/JonnyW/PhantomJs/Validator/Esprima.php',
+    'Stringable' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/Stringable.php',
+    'UnhandledMatchError' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
+    'ValueError' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
     'phpQuery' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'phpQueryEvents' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',
     'phpQueryObject' => $vendorDir . '/jaeger/phpquery-single/phpQuery.php',

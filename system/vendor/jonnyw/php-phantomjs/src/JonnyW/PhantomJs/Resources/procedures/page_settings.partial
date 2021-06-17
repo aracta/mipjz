@@ -1,9 +1,3 @@
 
-var settings = {{ input.getSettings()|json_encode(constant('JSON_FORCE_OBJECT')) }};
+page.settings.resourceTimeout = {{ input.getTimeout() }};
 
-for(var prop in settings) {
-    
-    if(settings.hasOwnProperty(prop)) {
-        page.settings[prop] = settings[prop];
-    }
-}

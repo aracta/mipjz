@@ -2,80 +2,46 @@
 
 namespace Yansongda\Pay\Gateways\Alipay;
 
-use Yansongda\Pay\Contracts\GatewayInterface;
-use Yansongda\Pay\Log;
+use Yansongda\Pay\Events;
+use Yansongda\Pay\Exceptions\GatewayException;
+use Yansongda\Pay\Exceptions\InvalidArgumentException;
+use Yansongda\Pay\Exceptions\InvalidConfigException;
+use Yansongda\Pay\Exceptions\InvalidSignException;
+use Yansongda\Pay\Gateways\Alipay;
 use Yansongda\Supports\Collection;
-use Yansongda\Supports\Config;
 
-class PosGateway implements GatewayInterface
+class PosGateway extends Gateway
 {
-    /**
-     * Config.
-     *
-     * @var Config
-     */
-    protected $config;
-
-    /**
-     * Bootstrap.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @param Config $config
-     */
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-    }
-
     /**
      * Pay an order.
      *
      * @author yansongda <me@yansongda.cn>
      *
      * @param string $endpoint
-     * @param array  $payload
      *
-     * @return Collection
+     * @throws InvalidArgumentException
+     * @throws GatewayException
+     * @throws InvalidConfigException
+     * @throws InvalidSignException
      */
     public function pay($endpoint, array $payload): Collection
     {
-        $payload['method'] = $this->getMethod();
+        $payload['method'] = 'alipay.trade.pay';
+        $biz_array = json_decode($payload['biz_content'], true);
+        if ((Alipay::MODE_SERVICE === $this->mode) && (!empty(Support::getInstance()->pid))) {
+            $biz_array['extend_params'] = is_array($biz_array['extend_params']) ? array_merge(['sys_service_provider_id' => Support::getInstance()->pid], $biz_array['extend_params']) : ['sys_service_provider_id' => Support::getInstance()->pid];
+        }
         $payload['biz_content'] = json_encode(array_merge(
-            json_decode($payload['biz_content'], true),
+            $biz_array,
             [
-                'product_code' => $this->getProductCode(),
-                'scene'        => 'bar_code',
+                'product_code' => 'FACE_TO_FACE_PAYMENT',
+                'scene' => 'bar_code',
             ]
         ));
-        $payload['sign'] = Support::generateSign($payload, $this->config->get('private_key'));
+        $payload['sign'] = Support::generateSign($payload);
 
-        Log::debug('Paying A Pos Order:', [$endpoint, $payload]);
+        Events::dispatch(new Events\PayStarted('Alipay', 'Pos', $endpoint, $payload));
 
-        return Support::requestApi($payload, $this->config->get('ali_public_key'));
-    }
-
-    /**
-     * Get method config.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @return string
-     */
-    protected function getMethod()
-    {
-        return 'alipay.trade.pay';
-    }
-
-    /**
-     * Get productCode config.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @return string
-     */
-    protected function getProductCode()
-    {
-        return 'FACE_TO_FACE_PAYMENT';
+        return Support::requestApi($payload);
     }
 }

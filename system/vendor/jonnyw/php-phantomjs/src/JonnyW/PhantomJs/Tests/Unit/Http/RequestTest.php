@@ -34,7 +34,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
     {
         $request = $this->getRequest();
 
-        $this->assertEquals(RequestInterface::REQUEST_TYPE_DEFAULT, $request->getType());
+        $this->assertSame(RequestInterface::REQUEST_TYPE_DEFAULT, $request->getType());
     }
 
     /**
@@ -50,7 +50,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $request = $this->getRequest();
         $request->setType($requestType);
 
-        $this->assertEquals($requestType, $request->getType());
+        $this->assertSame($requestType, $request->getType());
     }
 
     /**
@@ -64,7 +64,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $url            = 'http://test.com';
         $request = $this->getRequest($url);
 
-        $this->assertEquals($url, $request->getUrl());
+        $this->assertSame($url, $request->getUrl());
     }
 
     /**
@@ -78,7 +78,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $method         = 'GET';
         $request = $this->getRequest(null, $method);
 
-        $this->assertEquals($method, $request->getMethod());
+        $this->assertSame($method, $request->getMethod());
     }
 
     /**
@@ -92,7 +92,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $timeout        = 100000;
         $request = $this->getRequest('http://test.com', 'GET', $timeout);
 
-        $this->assertEquals($timeout, $request->getTimeout());
+        $this->assertSame($timeout, $request->getTimeout());
     }
 
     /**
@@ -108,6 +108,21 @@ class RequestTest extends \PHPUnit_Framework_TestCase
 
         $request = $this->getRequest();
         $request->setMethod('INVALID_METHOD');
+    }
+
+    /**
+     * Test invalid URL exception is thrown
+     * if URL is invalid format.
+     *
+     * @access public
+     * @return void
+     */
+    public function testInvalidUrlExceptionIsThrownIfUrlIsInvalidFormat()
+    {
+        $this->setExpectedException('\JonnyW\PhantomJs\Exception\InvalidUrlException');
+
+        $request = $this->getRequest();
+        $request->setUrl('\\AnInvalidUrl');
     }
 
     /**
@@ -131,7 +146,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $request->setUrl($url);
         $request->setRequestData($data);
 
-        $this->assertEquals($url, $request->getUrl());
+        $this->assertSame($url, $request->getUrl());
     }
 
     /**
@@ -157,7 +172,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '?test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $request->getUrl());
+        $this->assertSame($expectedUrl, $request->getUrl());
     }
 
     /**
@@ -183,7 +198,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '?test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $request->getUrl());
+        $this->assertSame($expectedUrl, $request->getUrl());
     }
 
     /**
@@ -209,7 +224,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '&test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $request->getUrl());
+        $this->assertSame($expectedUrl, $request->getUrl());
     }
 
     /**
@@ -230,7 +245,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $request->setMethod('GET');
         $request->setRequestData($data);
 
-        $this->assertEquals('', $request->getBody());
+        $this->assertSame('', $request->getBody());
     }
 
     /**
@@ -251,7 +266,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $request->setMethod('HEAD');
         $request->setRequestData($data);
 
-        $this->assertEquals('', $request->getBody());
+        $this->assertSame('', $request->getBody());
     }
 
     /**
@@ -274,7 +289,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
 
         $body = 'test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($body, $request->getBody());
+        $this->assertSame($body, $request->getBody());
     }
 
     /**
@@ -302,7 +317,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
             'test_param2[1]' => 'Testing3'
         );
 
-        $this->assertEquals($flatData, $request->getRequestData(true));
+        $this->assertSame($flatData, $request->getRequestData(true));
     }
 
     /**
@@ -324,7 +339,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $request = $this->getRequest();
         $request->setRequestData($data);
 
-        $this->assertEquals($data, $request->getRequestData(false));
+        $this->assertSame($data, $request->getRequestData(false));
     }
 
     /**
@@ -350,7 +365,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedHeaders = array_merge($existingHeaders, $newHeaders);
 
-        $this->assertEquals($expectedHeaders, $request->getHeaders());
+        $this->assertSame($expectedHeaders, $request->getHeaders());
     }
 
     /**
@@ -372,7 +387,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedHeaders = json_encode($headers);
 
-        $this->assertEquals($expectedHeaders, $request->getHeaders('json'));
+        $this->assertSame($expectedHeaders, $request->getHeaders('json'));
     }
 
     /**
@@ -391,124 +406,7 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $request = $this->getRequest();
         $request->setHeaders($headers);
 
-        $this->assertEquals($headers, $request->getHeaders('default'));
-    }
-
-    /**
-     * Test can add setting.
-     *
-     * @access public
-     * @return void
-     */
-    public function testCanAddSetting()
-    {
-        $request = $this->getRequest();
-        $request->addSetting('userAgent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.120 Safari/537.36');
-        $request->addSetting('localToRemoteUrlAccessEnabled', 'true');
-        $request->addSetting('resourceTimeout', 3000);
-
-        $expected = array(
-            'userAgent' => 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.120 Safari/537.36',
-            'localToRemoteUrlAccessEnabled' => 'true',
-            'resourceTimeout' => 3000
-        );
-
-        $this->assertEquals($expected, $request->getSettings());
-    }
-
-    /**
-     * Test set timeout sets resource
-     * timeout in settings
-     *
-     * @access public
-     * @return void
-     */
-    public function testSetTimeoutSetsResourceTimeoutInSettings()
-    {
-        $request = $this->getRequest();
-        $request->setTimeout(1000);
-
-        $expected = array(
-            'resourceTimeout' => 1000
-        );
-
-        $this->assertEquals($expected, $request->getSettings());
-    }
-
-    /**
-     * Test can add cookies.
-     *
-     * @access public
-     * @return void
-     */
-    public function testCanAddCookies()
-    {
-        $name     = 'test_cookie';
-        $value    = 'TESTING_COOKIES';
-        $path     = '/';
-        $domain   = 'localhost';
-        $httpOnly =  false;
-        $secure   = true;
-        $expires  = time() + 3600;
-
-        $request = $this->getRequest();
-        $request->addCookie(
-            $name,
-            $value,
-            $path,
-            $domain,
-            $httpOnly,
-            $secure,
-            $expires
-        );
-
-        $expected = array(
-            'name'     => $name,
-            'value'    => $value,
-            'path'     => $path,
-            'domain'   => $domain,
-            'httponly' => $httpOnly,
-            'secure'   => $secure,
-            'expires'  => $expires
-        );
-        
-        $cookies = $request->getCookies();
-        
-        $this->assertEquals(array($expected), $cookies['add']);
-    }
-
-    /**
-     * Test can delete cookies.
-     *
-     * @access public
-     * @return void
-     */
-    public function testCanDeleteCookies()
-    {
-        $name     = 'test_cookie';
-        $value    = 'TESTING_COOKIES';
-        $path     = '/';
-        $domain   = 'localhost';
-        $httpOnly =  false;
-        $secure   = true;
-        $expires  = time() + 3600;
-
-        $request = $this->getRequest();
-        $request->addCookie(
-            $name,
-            $value,
-            $path,
-            $domain,
-            $httpOnly,
-            $secure,
-            $expires
-        );
-
-        $request->deleteCookie($name);
-
-        $cookies = $request->getCookies();
-
-        $this->assertEquals(array($name), $cookies['delete']);
+        $this->assertSame($headers, $request->getHeaders('default'));
     }
 
     /**
@@ -522,10 +420,10 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $width  = 100;
         $height = 200;
 
-        $request = $this->getRequest();
-        $request->setViewportSize($width, $height);
+        $caputreRequest = $this->getRequest();
+        $caputreRequest->setViewportSize($width, $height);
 
-        $this->assertEquals($width, $request->getViewportWidth());
+        $this->assertSame($width, $caputreRequest->getViewportWidth());
     }
 
     /**
@@ -539,10 +437,10 @@ class RequestTest extends \PHPUnit_Framework_TestCase
         $width  = 100;
         $height = 200;
 
-        $request = $this->getRequest();
-        $request->setViewportSize($width, $height);
+        $caputreRequest = $this->getRequest();
+        $caputreRequest->setViewportSize($width, $height);
 
-        $this->assertEquals($height, $request->getViewportHeight());
+        $this->assertSame($height, $caputreRequest->getViewportHeight());
     }
 
 /** +++++++++++++++++++++++++++++++++++ **/

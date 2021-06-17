@@ -9,6 +9,7 @@
 
 namespace JonnyW\PhantomJs\Http;
 
+use JonnyW\PhantomJs\Exception\InvalidUrlException;
 use JonnyW\PhantomJs\Exception\InvalidMethodException;
 use JonnyW\PhantomJs\Procedure\InputInterface;
 
@@ -27,22 +28,6 @@ abstract class AbstractRequest
      * @access protected
      */
     protected $headers;
-
-    /**
-     * Settings
-     *
-     * @var array
-     * @access protected
-     */
-    protected $settings;
-
-    /**
-     * Cookies
-     *
-     * @var array
-     * @access protected
-     */
-    protected $cookies;
 
     /**
      * Request data
@@ -121,15 +106,9 @@ abstract class AbstractRequest
         $this->headers         = array();
         $this->data            = array();
         $this->bodyStyles      = array();
-        $this->settings        = array();
         $this->delay           = 0;
         $this->viewportWidth   = 0;
         $this->viewportHeight  = 0;
-
-        $this->cookies = array(
-            'add'    => array(),
-            'delete' => array()
-        );
 
         $this->setMethod($method);
         $this->setTimeout($timeout);
@@ -181,7 +160,7 @@ abstract class AbstractRequest
      */
     public function setTimeout($timeout)
     {
-        $this->settings['resourceTimeout'] = $timeout;
+        $this->timeout = $timeout;
 
         return $this;
     }
@@ -194,11 +173,7 @@ abstract class AbstractRequest
      */
     public function getTimeout()
     {
-        if (isset($this->settings['resourceTimeout'])) {
-            return $this->settings['resourceTimeout'];
-        }
-
-        return null;
+        return $this->timeout;
     }
 
     /**
@@ -268,11 +243,16 @@ abstract class AbstractRequest
      * Set request URL
      *
      * @access public
-     * @param  string                                 $url
+     * @param  string                                          $url
      * @return \JonnyW\PhantomJs\Http\AbstractRequest
+     * @throws \JonnyW\PhantomJs\Exception\InvalidUrlException
      */
     public function setUrl($url)
     {
+        if (!filter_var($url, FILTER_VALIDATE_URL, FILTER_FLAG_HOST_REQUIRED)) {
+            throw new InvalidUrlException(sprintf('Invalid URL provided: %s', $url));
+        }
+
         $this->url = $url;
 
         return $this;
@@ -404,89 +384,6 @@ abstract class AbstractRequest
         }
 
         return $this->headers;
-    }
-
-    /**
-     * Add single setting
-     *
-     * @access public
-     * @param  string                                 $setting
-     * @param  string                                 $value
-     * @return \JonnyW\PhantomJs\Http\AbstractRequest
-     */
-    public function addSetting($setting, $value)
-    {
-        $this->settings[$setting] = $value;
-
-        return $this;
-    }
-
-    /**
-     * Get settings
-     *
-     * @access public
-     * @return array
-     */
-    public function getSettings()
-    {
-        return $this->settings;
-    }
-
-    /**
-     * Add cookie.
-     *
-     * @access public
-     * @param  string                                 $name
-     * @param  mixed                                  $value
-     * @param  string                                 $path
-     * @param  string                                 $domain
-     * @param  bool                                   $httpOnly (default: true)
-     * @param  bool                                   $secure   (default: false)
-     * @param  int                                    $expires  (default: null)
-     * @return \JonnyW\PhantomJs\Http\AbstractRequest
-     */
-    public function addCookie($name, $value, $path, $domain, $httpOnly = true, $secure = false, $expires = null)
-    {
-        $filter = function ($value) {
-            return !is_null($value);
-        };
-
-        $this->cookies['add'][] = array_filter(array(
-            'name'     => $name,
-            'value'    => $value,
-            'path'     => $path,
-            'domain'   => $domain,
-            'httponly' => $httpOnly,
-            'secure'   => $secure,
-            'expires'  => $expires
-        ), $filter);
-
-        return $this;
-    }
-
-    /**
-     * Delete cookie.
-     *
-     * @access public
-     * @param  string                                 $name
-     * @return \JonnyW\PhantomJs\Http\AbstractRequest
-     */
-    public function deleteCookie($name)
-    {
-        $this->cookies['delete'][] = $name;
-
-        return $this;
-    }
-
-    /**
-     * Get cookies
-     *
-     * @access public
-     * @return array
-     */
-    public function getCookies()
-    {
-        return $this->cookies;
     }
 
     /**

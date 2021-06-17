@@ -2,8 +2,11 @@
 
 namespace Yansongda\Pay\Gateways\Wechat;
 
+use Yansongda\Pay\Events;
+use Yansongda\Pay\Exceptions\GatewayException;
+use Yansongda\Pay\Exceptions\InvalidArgumentException;
+use Yansongda\Pay\Exceptions\InvalidSignException;
 use Yansongda\Pay\Gateways\Wechat;
-use Yansongda\Pay\Log;
 use Yansongda\Supports\Collection;
 
 class GroupRedpackGateway extends Gateway
@@ -14,37 +17,54 @@ class GroupRedpackGateway extends Gateway
      * @author yansongda <me@yansongda.cn>
      *
      * @param string $endpoint
-     * @param array  $payload
      *
-     * @return Collection
+     * @throws GatewayException
+     * @throws InvalidArgumentException
+     * @throws InvalidSignException
      */
     public function pay($endpoint, array $payload): Collection
     {
         $payload['wxappid'] = $payload['appid'];
         $payload['amt_type'] = 'ALL_RAND';
 
-        $this->mode !== Wechat::MODE_SERVICE ?: $payload['msgappid'] = $payload['appid'];
+        if (Wechat::MODE_SERVICE === $this->mode) {
+            $payload['msgappid'] = $payload['appid'];
+        }
 
-        unset($payload['appid'], $payload['trade_type'], $payload['notify_url'], $payload['spbill_create_ip']);
+        unset($payload['appid'], $payload['trade_type'],
+              $payload['notify_url'], $payload['spbill_create_ip']);
 
-        $payload['sign'] = Support::generateSign($payload, $this->config->get('key'));
+        $payload['sign'] = Support::generateSign($payload);
 
-        Log::debug('Paying A Groupredpack Order:', [$endpoint, $payload]);
+        Events::dispatch(new Events\PayStarted('Wechat', 'Group Redpack', $endpoint, $payload));
 
         return Support::requestApi(
             'mmpaymkttransfers/sendgroupredpack',
             $payload,
-            $this->config->get('key'),
-            ['cert' => $this->config->get('cert_client'), 'ssl_key' => $this->config->get('cert_key')]
+            true
         );
+    }
+
+    /**
+     * Find.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @param $billno
+     */
+    public function find($billno): array
+    {
+        return [
+            'endpoint' => 'mmpaymkttransfers/gethbinfo',
+            'order' => ['mch_billno' => $billno, 'bill_type' => 'MCHT'],
+            'cert' => true,
+        ];
     }
 
     /**
      * Get trade type config.
      *
      * @author yansongda <me@yansongda.cn>
-     *
-     * @return string
      */
     protected function getTradeType(): string
     {

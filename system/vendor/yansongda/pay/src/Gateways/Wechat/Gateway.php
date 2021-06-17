@@ -3,20 +3,14 @@
 namespace Yansongda\Pay\Gateways\Wechat;
 
 use Yansongda\Pay\Contracts\GatewayInterface;
-use Yansongda\Pay\Gateways\Wechat;
-use Yansongda\Pay\Log;
+use Yansongda\Pay\Events;
+use Yansongda\Pay\Exceptions\GatewayException;
+use Yansongda\Pay\Exceptions\InvalidArgumentException;
+use Yansongda\Pay\Exceptions\InvalidSignException;
 use Yansongda\Supports\Collection;
-use Yansongda\Supports\Config;
 
 abstract class Gateway implements GatewayInterface
 {
-    /**
-     * Config.
-     *
-     * @var Config
-     */
-    protected $config;
-
     /**
      * Mode.
      *
@@ -29,12 +23,11 @@ abstract class Gateway implements GatewayInterface
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param Config $config
+     * @throws InvalidArgumentException
      */
-    public function __construct(Config $config)
+    public function __construct()
     {
-        $this->config = $config;
-        $this->mode = $this->config->get('mode', Wechat::MODE_NORMAL);
+        $this->mode = Support::getInstance()->mode;
     }
 
     /**
@@ -43,11 +36,26 @@ abstract class Gateway implements GatewayInterface
      * @author yansongda <me@yansongda.cn>
      *
      * @param string $endpoint
-     * @param array  $payload
      *
      * @return Collection
      */
     abstract public function pay($endpoint, array $payload);
+
+    /**
+     * Find.
+     *
+     * @author yansongda <me@yansongda.cn>
+     *
+     * @param string|array $order
+     */
+    public function find($order): array
+    {
+        return [
+            'endpoint' => 'pay/orderquery',
+            'order' => is_array($order) ? $order : ['out_trade_no' => $order],
+            'cert' => false,
+        ];
+    }
 
     /**
      * Get trade type config.
@@ -59,21 +67,22 @@ abstract class Gateway implements GatewayInterface
     abstract protected function getTradeType();
 
     /**
-     * Preorder an order.
+     * Schedule an order.
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @param string $endpoint
-     * @param array  $payload
+     * @param array $payload
      *
-     * @return Collection
+     * @throws GatewayException
+     * @throws InvalidArgumentException
+     * @throws InvalidSignException
      */
-    protected function preOrder($endpoint, $payload): Collection
+    protected function preOrder($payload): Collection
     {
-        $payload['sign'] = Support::generateSign($payload, $this->config->get('key'));
+        $payload['sign'] = Support::generateSign($payload);
 
-        Log::debug('Pre Order:', [$endpoint, $payload]);
+        Events::dispatch(new Events\MethodCalled('Wechat', 'PreOrder', '', $payload));
 
-        return Support::requestApi($endpoint, $payload, $this->config->get('key'));
+        return Support::requestApi('pay/unifiedorder', $payload);
     }
 }

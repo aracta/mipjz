@@ -34,7 +34,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
     {
         $captureRequest = $this->getCaptureRequest();
 
-        $this->assertEquals(RequestInterface::REQUEST_TYPE_CAPTURE, $captureRequest->getType());
+        $this->assertSame(RequestInterface::REQUEST_TYPE_CAPTURE, $captureRequest->getType());
     }
 
     /**
@@ -50,7 +50,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest = $this->getCaptureRequest();
         $captureRequest->setType($requestType);
 
-        $this->assertEquals($requestType, $captureRequest->getType());
+        $this->assertSame($requestType, $captureRequest->getType());
     }
 
     /**
@@ -64,7 +64,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $url            = 'http://test.com';
         $captureRequest = $this->getCaptureRequest($url);
 
-        $this->assertEquals($url, $captureRequest->getUrl());
+        $this->assertSame($url, $captureRequest->getUrl());
     }
 
     /**
@@ -78,7 +78,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $method         = 'GET';
         $captureRequest = $this->getCaptureRequest(null, $method);
 
-        $this->assertEquals($method, $captureRequest->getMethod());
+        $this->assertSame($method, $captureRequest->getMethod());
     }
 
     /**
@@ -92,7 +92,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $timeout        = 100000;
         $captureRequest = $this->getCaptureRequest('http://test.com', 'GET', $timeout);
 
-        $this->assertEquals($timeout, $captureRequest->getTimeout());
+        $this->assertSame($timeout, $captureRequest->getTimeout());
     }
 
     /**
@@ -124,7 +124,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest = $this->getCaptureRequest();
         $captureRequest->setCaptureDimensions($width, $height);
 
-        $this->assertEquals($width, $captureRequest->getRectWidth());
+        $this->assertSame($width, $captureRequest->getRectWidth());
     }
 
     /**
@@ -141,7 +141,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest = $this->getCaptureRequest();
         $captureRequest->setCaptureDimensions($width, $height);
 
-        $this->assertEquals($height, $captureRequest->getRectHeight());
+        $this->assertSame($height, $captureRequest->getRectHeight());
     }
 
     /**
@@ -159,7 +159,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest = $this->getCaptureRequest();
         $captureRequest->setCaptureDimensions($width, $height, $top);
 
-        $this->assertEquals($top, $captureRequest->getRectTop());
+        $this->assertSame($top, $captureRequest->getRectTop());
     }
 
     /**
@@ -177,7 +177,22 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest = $this->getCaptureRequest();
         $captureRequest->setCaptureDimensions($width, $height, 0, $left);
 
-        $this->assertEquals($left, $captureRequest->getRectLeft());
+        $this->assertSame($left, $captureRequest->getRectLeft());
+    }
+
+    /**
+     * Test invalid URL exception is thrown
+     * if URL is invalid format.
+     *
+     * @access public
+     * @return void
+     */
+    public function testInvalidUrlExceptionIsThrownIfUrlIsInvalidFormat()
+    {
+        $this->setExpectedException('\JonnyW\PhantomJs\Exception\InvalidUrlException');
+
+        $captureRequest = $this->getCaptureRequest();
+        $captureRequest->setUrl('\\AnInvalidUrl');
     }
 
     /**
@@ -201,7 +216,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest->setUrl($url);
         $captureRequest->setRequestData($data);
 
-        $this->assertEquals($url, $captureRequest->getUrl());
+        $this->assertSame($url, $captureRequest->getUrl());
     }
 
     /**
@@ -227,7 +242,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '?test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $captureRequest->getUrl());
+        $this->assertSame($expectedUrl, $captureRequest->getUrl());
     }
 
     /**
@@ -253,7 +268,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '?test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $captureRequest->getUrl());
+        $this->assertSame($expectedUrl, $captureRequest->getUrl());
     }
 
     /**
@@ -279,7 +294,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '&test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $captureRequest->getUrl());
+        $this->assertSame($expectedUrl, $captureRequest->getUrl());
     }
 
     /**
@@ -300,7 +315,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest->setMethod('GET');
         $captureRequest->setRequestData($data);
 
-        $this->assertEquals('', $captureRequest->getBody());
+        $this->assertSame('', $captureRequest->getBody());
     }
 
     /**
@@ -321,7 +336,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest->setMethod('HEAD');
         $captureRequest->setRequestData($data);
 
-        $this->assertEquals('', $captureRequest->getBody());
+        $this->assertSame('', $captureRequest->getBody());
     }
 
     /**
@@ -344,7 +359,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
 
         $body = 'test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($body, $captureRequest->getBody());
+        $this->assertSame($body, $captureRequest->getBody());
     }
 
     /**
@@ -372,7 +387,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
             'test_param2[1]' => 'Testing3'
         );
 
-        $this->assertEquals($flatData, $captureRequest->getRequestData(true));
+        $this->assertSame($flatData, $captureRequest->getRequestData(true));
     }
 
     /**
@@ -394,7 +409,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest = $this->getCaptureRequest();
         $captureRequest->setRequestData($data);
 
-        $this->assertEquals($data, $captureRequest->getRequestData(false));
+        $this->assertSame($data, $captureRequest->getRequestData(false));
     }
 
     /**
@@ -420,7 +435,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedHeaders = array_merge($existingHeaders, $newHeaders);
 
-        $this->assertEquals($expectedHeaders, $captureRequest->getHeaders());
+        $this->assertSame($expectedHeaders, $captureRequest->getHeaders());
     }
 
     /**
@@ -442,7 +457,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedHeaders = json_encode($headers);
 
-        $this->assertEquals($expectedHeaders, $captureRequest->getHeaders('json'));
+        $this->assertSame($expectedHeaders, $captureRequest->getHeaders('json'));
     }
 
     /**
@@ -461,7 +476,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest = $this->getCaptureRequest();
         $captureRequest->setHeaders($headers);
 
-        $this->assertEquals($headers, $captureRequest->getHeaders('default'));
+        $this->assertSame($headers, $captureRequest->getHeaders('default'));
     }
 
     /**
@@ -494,7 +509,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $captureRequest = $this->getCaptureRequest();
         $captureRequest->setOutputFile($outputFile);
 
-        $this->assertEquals($outputFile, $captureRequest->getOutputFile());
+        $this->assertSame($outputFile, $captureRequest->getOutputFile());
     }
 
     /**
@@ -511,7 +526,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $caputreRequest = $this->getCaptureRequest();
         $caputreRequest->setViewportSize($width, $height);
 
-        $this->assertEquals($width, $caputreRequest->getViewportWidth());
+        $this->assertSame($width, $caputreRequest->getViewportWidth());
     }
 
     /**
@@ -528,7 +543,7 @@ class CaptureRequestTest extends \PHPUnit_Framework_TestCase
         $caputreRequest = $this->getCaptureRequest();
         $caputreRequest->setViewportSize($width, $height);
 
-        $this->assertEquals($height, $caputreRequest->getViewportHeight());
+        $this->assertSame($height, $caputreRequest->getViewportHeight());
     }
 
 /** +++++++++++++++++++++++++++++++++++ **/

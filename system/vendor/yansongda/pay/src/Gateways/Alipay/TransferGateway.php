@@ -3,76 +3,47 @@
 namespace Yansongda\Pay\Gateways\Alipay;
 
 use Yansongda\Pay\Contracts\GatewayInterface;
-use Yansongda\Pay\Log;
+use Yansongda\Pay\Events;
+use Yansongda\Pay\Exceptions\GatewayException;
+use Yansongda\Pay\Exceptions\InvalidConfigException;
+use Yansongda\Pay\Exceptions\InvalidSignException;
 use Yansongda\Supports\Collection;
-use Yansongda\Supports\Config;
 
 class TransferGateway implements GatewayInterface
 {
-    /**
-     * Config.
-     *
-     * @var Config
-     */
-    protected $config;
-
-    /**
-     * Bootstrap.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @param Config $config
-     */
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-    }
-
     /**
      * Pay an order.
      *
      * @author yansongda <me@yansongda.cn>
      *
      * @param string $endpoint
-     * @param array  $payload
      *
-     * @return Collection
+     * @throws GatewayException
+     * @throws InvalidConfigException
+     * @throws InvalidSignException
      */
     public function pay($endpoint, array $payload): Collection
     {
-        $payload['method'] = $this->getMethod();
-        $payload['biz_content'] = json_encode(array_merge(
-            json_decode($payload['biz_content'], true),
-            ['product_code' => $this->getProductCode()]
-        ));
-        $payload['sign'] = Support::generateSign($payload, $this->config->get('private_key'));
+        $payload['method'] = 'alipay.fund.trans.uni.transfer';
+        $payload['sign'] = Support::generateSign($payload);
 
-        Log::debug('Paying A Transfer Order:', [$endpoint, $payload]);
+        Events::dispatch(new Events\PayStarted('Alipay', 'Transfer', $endpoint, $payload));
 
-        return Support::requestApi($payload, $this->config->get('ali_public_key'));
+        return Support::requestApi($payload);
     }
 
     /**
-     * Get method config.
+     * Find.
      *
      * @author yansongda <me@yansongda.cn>
      *
-     * @return string
+     * @param $order
      */
-    protected function getMethod(): string
+    public function find($order): array
     {
-        return 'alipay.fund.trans.toaccount.transfer';
-    }
-
-    /**
-     * Get productCode config.
-     *
-     * @author yansongda <me@yansongda.cn>
-     *
-     * @return string
-     */
-    protected function getProductCode(): string
-    {
-        return '';
+        return [
+            'method' => 'alipay.fund.trans.order.query',
+            'biz_content' => json_encode(is_array($order) ? $order : ['out_biz_no' => $order]),
+        ];
     }
 }

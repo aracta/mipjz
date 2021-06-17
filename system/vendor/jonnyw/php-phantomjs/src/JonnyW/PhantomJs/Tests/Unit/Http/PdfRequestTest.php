@@ -34,7 +34,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
     {
         $pdfRequest = $this->getPdfRequest();
 
-        $this->assertEquals(RequestInterface::REQUEST_TYPE_PDF, $pdfRequest->getType());
+        $this->assertSame(RequestInterface::REQUEST_TYPE_PDF, $pdfRequest->getType());
     }
 
     /**
@@ -50,7 +50,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setType($requestType);
 
-        $this->assertEquals($requestType, $pdfRequest->getType());
+        $this->assertSame($requestType, $pdfRequest->getType());
     }
 
     /**
@@ -64,7 +64,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $url            = 'http://test.com';
         $pdfRequest = $this->getPdfRequest($url);
 
-        $this->assertEquals($url, $pdfRequest->getUrl());
+        $this->assertSame($url, $pdfRequest->getUrl());
     }
 
     /**
@@ -78,7 +78,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $method         = 'GET';
         $pdfRequest = $this->getPdfRequest(null, $method);
 
-        $this->assertEquals($method, $pdfRequest->getMethod());
+        $this->assertSame($method, $pdfRequest->getMethod());
     }
 
     /**
@@ -92,7 +92,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $timeout        = 100000;
         $pdfRequest = $this->getPdfRequest('http://test.com', 'GET', $timeout);
 
-        $this->assertEquals($timeout, $pdfRequest->getTimeout());
+        $this->assertSame($timeout, $pdfRequest->getTimeout());
     }
 
     /**
@@ -108,6 +108,21 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
 
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setMethod('INVALID_METHOD');
+    }
+
+    /**
+     * Test invalid URL exception is thrown
+     * if URL is invalid format.
+     *
+     * @access public
+     * @return void
+     */
+    public function testInvalidUrlExceptionIsThrownIfUrlIsInvalidFormat()
+    {
+        $this->setExpectedException('\JonnyW\PhantomJs\Exception\InvalidUrlException');
+
+        $pdfRequest = $this->getPdfRequest();
+        $pdfRequest->setUrl('\\AnInvalidUrl');
     }
 
     /**
@@ -131,7 +146,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest->setUrl($url);
         $pdfRequest->setRequestData($data);
 
-        $this->assertEquals($url, $pdfRequest->getUrl());
+        $this->assertSame($url, $pdfRequest->getUrl());
     }
 
     /**
@@ -157,7 +172,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '?test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $pdfRequest->getUrl());
+        $this->assertSame($expectedUrl, $pdfRequest->getUrl());
     }
 
     /**
@@ -183,7 +198,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '?test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $pdfRequest->getUrl());
+        $this->assertSame($expectedUrl, $pdfRequest->getUrl());
     }
 
     /**
@@ -209,7 +224,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedUrl = $url . '&test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($expectedUrl, $pdfRequest->getUrl());
+        $this->assertSame($expectedUrl, $pdfRequest->getUrl());
     }
 
     /**
@@ -230,7 +245,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest->setMethod('GET');
         $pdfRequest->setRequestData($data);
 
-        $this->assertEquals('', $pdfRequest->getBody());
+        $this->assertSame('', $pdfRequest->getBody());
     }
 
     /**
@@ -251,7 +266,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest->setMethod('HEAD');
         $pdfRequest->setRequestData($data);
 
-        $this->assertEquals('', $pdfRequest->getBody());
+        $this->assertSame('', $pdfRequest->getBody());
     }
 
     /**
@@ -274,7 +289,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
 
         $body = 'test_param1=Testing1&test_param2=Testing2';
 
-        $this->assertEquals($body, $pdfRequest->getBody());
+        $this->assertSame($body, $pdfRequest->getBody());
     }
 
     /**
@@ -302,7 +317,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
             'test_param2[1]' => 'Testing3'
         );
 
-        $this->assertEquals($flatData, $pdfRequest->getRequestData(true));
+        $this->assertSame($flatData, $pdfRequest->getRequestData(true));
     }
 
     /**
@@ -324,7 +339,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setRequestData($data);
 
-        $this->assertEquals($data, $pdfRequest->getRequestData(false));
+        $this->assertSame($data, $pdfRequest->getRequestData(false));
     }
 
     /**
@@ -350,7 +365,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedHeaders = array_merge($existingHeaders, $newHeaders);
 
-        $this->assertEquals($expectedHeaders, $pdfRequest->getHeaders());
+        $this->assertSame($expectedHeaders, $pdfRequest->getHeaders());
     }
 
     /**
@@ -372,7 +387,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
 
         $expectedHeaders = json_encode($headers);
 
-        $this->assertEquals($expectedHeaders, $pdfRequest->getHeaders('json'));
+        $this->assertSame($expectedHeaders, $pdfRequest->getHeaders('json'));
     }
 
     /**
@@ -391,7 +406,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setHeaders($headers);
 
-        $this->assertEquals($headers, $pdfRequest->getHeaders('default'));
+        $this->assertSame($headers, $pdfRequest->getHeaders('default'));
     }
 
     /**
@@ -424,7 +439,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setOutputFile($outputFile);
 
-        $this->assertEquals($outputFile, $pdfRequest->getOutputFile());
+        $this->assertSame($outputFile, $pdfRequest->getOutputFile());
     }
 
     /**
@@ -441,7 +456,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setViewportSize($width, $height);
 
-        $this->assertEquals($width, $pdfRequest->getViewportWidth());
+        $this->assertSame($width, $pdfRequest->getViewportWidth());
     }
 
     /**
@@ -458,7 +473,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setViewportSize($width, $height);
 
-        $this->assertEquals($height, $pdfRequest->getViewportHeight());
+        $this->assertSame($height, $pdfRequest->getViewportHeight());
     }
 
     /**
@@ -475,7 +490,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setPaperSize($width, $height);
 
-        $this->assertEquals($width, $pdfRequest->getPaperWidth());
+        $this->assertSame($width, $pdfRequest->getPaperWidth());
     }
 
     /**
@@ -492,7 +507,7 @@ class PdfRequestTest extends \PHPUnit_Framework_TestCase
         $pdfRequest = $this->getPdfRequest();
         $pdfRequest->setPaperSize($width, $height);
 
-        $this->assertEquals($height, $pdfRequest->getPaperHeight());
+        $this->assertSame($height, $pdfRequest->getPaperHeight());
     }
 
 /** +++++++++++++++++++++++++++++++++++ **/

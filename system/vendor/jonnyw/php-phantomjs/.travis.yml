@@ -5,6 +5,7 @@ os:
   - windows
 
 php:
+  - 5.3
   - 5.4
   - 5.5
   - 5.6
@@ -15,7 +16,7 @@ before_script:
   - phpenv rehash
 
 script:
-  - bin/phpunit --coverage-clover=coverage.clover
+  - phpunit --coverage-clover=coverage.clover
 
 after_script:
   - wget https://scrutinizer-ci.com/ocular.phar

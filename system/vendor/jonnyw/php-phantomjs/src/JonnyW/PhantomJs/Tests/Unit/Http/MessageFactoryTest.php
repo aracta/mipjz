@@ -59,7 +59,7 @@ class MessageFactoryTest extends \PHPUnit_Framework_TestCase
         $messageFactory = $this->getMessageFactory();
         $request        = $messageFactory->createRequest($url);
 
-        $this->assertEquals($url, $request->getUrl());
+        $this->assertSame($url, $request->getUrl());
     }
 
     /**
@@ -75,7 +75,7 @@ class MessageFactoryTest extends \PHPUnit_Framework_TestCase
         $messageFactory = $this->getMessageFactory();
         $request        = $messageFactory->createRequest(null, $method);
 
-        $this->assertEquals($method, $request->getMethod());
+        $this->assertSame($method, $request->getMethod());
     }
 
     /**
@@ -91,7 +91,7 @@ class MessageFactoryTest extends \PHPUnit_Framework_TestCase
         $messageFactory = $this->getMessageFactory();
         $request        = $messageFactory->createRequest(null, 'GET', $timeout);
 
-        $this->assertEquals($timeout, $request->getTimeout());
+        $this->assertSame($timeout, $request->getTimeout());
     }
 
     /**
@@ -120,7 +120,7 @@ class MessageFactoryTest extends \PHPUnit_Framework_TestCase
         $messageFactory = $this->getMessageFactory();
         $captureRequest = $messageFactory->createCaptureRequest($url);
 
-        $this->assertEquals($url, $captureRequest->getUrl());
+        $this->assertSame($url, $captureRequest->getUrl());
     }
 
     /**
@@ -137,7 +137,7 @@ class MessageFactoryTest extends \PHPUnit_Framework_TestCase
         $messageFactory = $this->getMessageFactory();
         $captureRequest = $messageFactory->createCaptureRequest(null, $method);
 
-        $this->assertEquals($method, $captureRequest->getMethod());
+        $this->assertSame($method, $captureRequest->getMethod());
     }
 
     /**
@@ -153,7 +153,7 @@ class MessageFactoryTest extends \PHPUnit_Framework_TestCase
         $messageFactory = $this->getMessageFactory();
         $captureRequest = $messageFactory->createCaptureRequest(null, 'GET', $timeout);
 
-        $this->assertEquals($timeout, $captureRequest->getTimeout());
+        $this->assertSame($timeout, $captureRequest->getTimeout());
     }
 
     /**
